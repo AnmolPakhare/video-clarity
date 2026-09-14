@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import base64
 import json
 import math
 import re
@@ -194,8 +195,19 @@ class OpenAILLM:
         self.max_calls, self.calls = max_calls, 0
 
     def generate(self, instructions: str, material: str) -> str:
+        return self._request(instructions, material)
+
+    def generate_images(self, instructions: str, material: str, images: list[tuple[float, Path]]) -> str:
+        content = [{"type": "input_text", "text": material}]
+        for seconds, path in images:
+            content.append({"type": "input_text", "text": f"Video frame at [{timestamp(seconds)}] ({seconds:.3f} seconds)"})
+            content.append({"type": "input_image", "detail": "high",
+                            "image_url": "data:image/jpeg;base64," + base64.b64encode(path.read_bytes()).decode("ascii")})
+        return self._request(instructions, [{"role": "user", "content": content}])
+
+    def _request(self, instructions: str, material) -> str:
         if self.calls >= self.max_calls:
-            raise ClarityError("LLM call limit reached. Increase --max-calls or use basic mode. Transcript is saved.")
+            raise ClarityError("LLM call limit reached. Increase --max-calls. Extracted source files remain saved.")
         self.calls += 1
         payload = json.dumps({"model": self.model, "instructions": instructions,
                               "input": material, "store": False, "max_output_tokens": 4000}).encode()
@@ -276,17 +288,21 @@ def save_transcript(transcript: Transcript, output: Path) -> Path:
     return path
 
 
-def save_summary(transcript: Transcript, summary: str, mode: str, output: Path, model: str | None = None) -> Path:
+def save_summary(transcript: Transcript, summary: str, mode: str, output: Path, model: str | None = None,
+                 visual_metadata: dict | None = None) -> Path:
     output.mkdir(parents=True, exist_ok=True)
     header = (f"# VideoClarity learning notes\n\n"
               f"Video: https://www.youtube.com/watch?v={transcript.video_id}\n\n"
               f"Source: {transcript.source} · Caption language: {transcript.language} · Mode: {mode}\n\n"
-              "These notes use spoken captions. Visual-only information is not included.\n\n")
+              + ("These notes combine available captions with sampled video frames. Brief visuals between samples may be missed.\n\n"
+                 if visual_metadata else "These notes use spoken captions. Visual-only information is not included.\n\n"))
     path = output / f"{transcript.video_id}.summary.md"
     path.write_text(header + summary + "\n", encoding="utf-8")
     data = {"video_id": transcript.video_id, "mode": mode, "model": model,
             "source": transcript.source, "caption_language": transcript.language,
             "summary_markdown": summary, "segment_count": len(transcript.segments)}
+    if visual_metadata:
+        data["visual_analysis"] = visual_metadata
     (output / f"{transcript.video_id}.summary.json").write_text(
         json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
