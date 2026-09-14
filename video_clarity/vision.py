@@ -5,6 +5,7 @@ import json
 import math
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
 
 from .core import ClarityError, Transcript, llm_summary, timestamp
@@ -93,7 +94,8 @@ def extract_frames(video: Path, output: Path, identifier: str, interval: float =
             raise ClarityError("Video timing metadata is missing or invalid.")
         duration = count / fps
         times = sample_times(duration, interval, max_frames)
-        folder = Path(tempfile.mkdtemp(prefix=f"{identifier}.frames-", dir=output))
+        folder = output / f"{identifier}.frames-{uuid.uuid4().hex[:12]}"
+        folder.mkdir()
         frames, skipped, seen = [], [], set()
         for index, seconds in enumerate(times):
             frame_index = min(int(seconds * fps), int(count) - 1)
