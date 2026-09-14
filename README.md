@@ -1,6 +1,17 @@
 # VideoClarity
 
-Turn YouTube captions into timestamped learning notes. Give it one or more video URLs, then read the results as Markdown or use the JSON in another application.
+VideoClarity is a Python command-line tool that turns YouTube captions into learning notes. Give it one or more video links, and it retrieves the spoken transcript, keeps the timestamps, and saves notes you can read or use in another application.
+
+Use it to review educational videos, revisit technical tutorials, or collect notes from several videos. With the optional LLM mode, it explains concepts in everyday language and adds clearly labeled examples to help you understand them.
+
+## Summary modes
+
+| Mode | What you get | What you need |
+| --- | --- | --- |
+| Basic (default) | Selected transcript excerpts from across the video, with timestamp links | Internet access for YouTube captions; no LLM API key |
+| LLM | A plain-language overview, main ideas, concept explanations, added examples, and takeaways | An OpenAI API key and a compatible model ID |
+
+Both modes can reuse a saved JSON transcript. Basic mode works fully offline with saved input. LLM mode still contacts OpenAI.
 
 ## What it does
 
@@ -11,7 +22,53 @@ Turn YouTube captions into timestamped learning notes. Give it one or more video
 - Saves captions before summarization and supports saved JSON input for repeatable, offline tests.
 - Handles multiple video links independently; one failure does not cancel the remaining videos.
 
-This version reads spoken captions. It does **not** analyze video frames, diagrams, or visual-only demonstrations, and does not transcribe audio when captions are unavailable. Private, restricted, uncaptioned, or network-blocked videos may fail with an actionable error. Caption mistakes can carry into the notes.
+## What content does it analyze?
+
+**The current version reads transcripts only.** It uses YouTube's existing captions or a saved JSON transcript as its source. LLM mode explains that text; it does not watch or listen to the video.
+
+It does **not** analyze video frames, diagrams, on-screen code, or visual-only demonstrations, and does not transcribe audio when captions are unavailable. Private, restricted, uncaptioned, or network-blocked videos may fail with an actionable error. Caption mistakes can carry into the notes.
+
+## Technology stack
+
+The application runs locally in your terminal and writes its results to files.
+
+| Technology | Role in VideoClarity |
+| --- | --- |
+| **Python 3.10+** | Application language and runtime |
+| **youtube-transcript-api** (`>=1.2,<2`) | Retrieves manual or automatically generated YouTube captions and their timestamps |
+| **Requests** | Supplies the HTTP session with timeouts for caption retrieval; installed through `youtube-transcript-api` |
+| **OpenAI Responses API** (optional) | Generates simple explanations and teaching examples in LLM mode; the user selects the model |
+| **Python standard library** | `argparse` handles CLI arguments; `urllib.request` sends OpenAI requests; `dataclasses`, `json`, and `pathlib` manage transcript data and files; `re` and `collections.Counter` support basic excerpt selection |
+| **Markdown and JSON** | Store readable notes, structured summary output, and reusable transcripts on disk |
+| **pip, venv, and setuptools** | Install dependencies, isolate the Python environment, and package the `video-clarity` command |
+| **unittest and unittest.mock** | Test parsing, summarization flow, exports, retries, and errors without paid API calls |
+| **GitHub Actions** | Runs the automated tests on Python 3.10, 3.12, and 3.13 |
+
+OpenAI requests use Python's built-in HTTP client. The project does not require the OpenAI Python SDK, LangChain, a database, or a web server.
+
+## How it works
+
+1. **Read the input.** Validate each YouTube URL or video ID and apply the requested caption-language preferences.
+2. **Get the transcript.** Retrieve captions from YouTube or load a saved JSON transcript. Clean the text and validate its timestamps.
+3. **Save the source.** Write the transcript to disk before summarization so it can be reused if a later API request fails.
+4. **Create the notes.** Basic mode selects excerpts across the video. LLM mode splits long transcripts into sections, summarizes each section, combines the notes, and generates beginner-friendly explanations with added examples.
+5. **Export the results.** Save Markdown and JSON summaries, with timestamp links back to the video.
+
+## Project structure
+
+```text
+video_clarity/
+  cli.py                  Command-line options and batch processing
+  core.py                 Caption retrieval, summarization, and exports
+  __main__.py             Entry point for python -m video_clarity
+tests/test_core.py        Automated tests
+examples/demo.transcript.json
+                          Synthetic transcript for an offline demo
+.github/workflows/tests.yml
+                          GitHub Actions test configuration
+pyproject.toml            Dependencies, packaging, and CLI entry point
+TESTING.md                Initial validation record and test limitations
+```
 
 ## Install
 
