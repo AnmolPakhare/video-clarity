@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-clarity"
+version = "0.1.0"
+description = "Turn YouTube captions into understandable, timestamped learning notes"
+requires-python = ">=3.10"
+dependencies = ["youtube-transcript-api>=1.2,<2"]
+
+[project.scripts]
+video-clarity = "video_clarity.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["video_clarity*"]
