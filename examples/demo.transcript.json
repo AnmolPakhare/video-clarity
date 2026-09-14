@@ -1,0 +1,11 @@
+{
+  "video_id": "abcdefghijk",
+  "language": "en",
+  "source": "Synthetic fixture; not a real video transcript",
+  "segments": [
+    {"start": 0, "duration": 10, "text": "A queue stores tasks in the order they arrive. The oldest task is normally processed first."},
+    {"start": 10, "duration": 15, "text": "A worker takes a task from the queue and processes it. More workers can help handle more tasks, but completion order may differ."},
+    {"start": 25, "duration": 15, "text": "If a worker fails, the task may be retried. Design the operation so repeating it does not accidentally duplicate the result."},
+    {"start": 40, "duration": 10, "text": "A queue helps absorb a burst of work. It does not remove the need for enough processing capacity over time."}
+  ]
+}
